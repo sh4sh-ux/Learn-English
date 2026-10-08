@@ -1,0 +1,102 @@
+name: NARO Learn English 배포
+
+run-name: NARO Learn English · ${{ inputs.mode }} · ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 실행할 작업을 선택하세요
+        required: true
+        type: choice
+        default: 점검
+        options:
+          - 점검
+          - 배포
+
+permissions:
+  contents: read
+
+concurrency:
+  group: naro-learn-github-pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: 품질 및 PWA 점검
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: main 브랜치 확인
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "이 워크플로는 main 브랜치에서만 실행할 수 있습니다."
+            exit 1
+          fi
+
+      - name: 소스 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: TypeScript 검사
+        run: npm run typecheck
+
+      - name: 자동 테스트
+        run: npm test
+
+      - name: 프로덕션 빌드
+        run: npm run build
+
+      - name: PWA 및 배포 경로 확인
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/manifest.webmanifest
+          test -f dist/sw.js
+          test -f dist/pwa-192x192.png
+          test -f dist/pwa-512x512.png
+          grep -Fq "base: '/Learn-English/'" vite.config.ts
+          grep -Fq '"start_url":"/Learn-English/"' dist/manifest.webmanifest
+          grep -Fq '"scope":"/Learn-English/"' dist/manifest.webmanifest
+          grep -Fq 'createHashRouter' src/router.tsx
+          echo "PWA 파일, /Learn-English/ base, Hash Router 확인 완료"
+
+      - name: GitHub Pages Artifact 업로드
+        if: ${{ inputs.mode == '배포' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: GitHub Pages 배포
+    if: ${{ inputs.mode == '배포' }}
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pages 설정
+        uses: actions/configure-pages@v5
+
+      - name: GitHub Pages 배포
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 배포 결과
+        run: |
+          echo "배포 URL: ${{ steps.deployment.outputs.page_url }}"

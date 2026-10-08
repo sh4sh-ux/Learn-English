@@ -1,0 +1,12 @@
+import { ArrowLeft, Check, PenLine } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '../components/ui'
+import { toLocalDateKey } from '../engine/daily'
+import { useAppStore } from '../store/useAppStore'
+
+export function LiteracyPage(){
+  const navigate=useNavigate();const log=useAppStore(s=>s.logActivity);const sessions=useAppStore(s=>s.dailySessions);const complete=useAppStore(s=>s.completeDailyTask);const [answer,setAnswer]=useState('');const [done,setDone]=useState(false);const today=toLocalDateKey();const session=sessions.find(x=>x.id===today);const task=session?.tasks.find(x=>x.kind==='literacy')
+  const finish=async()=>{const now=new Date();await Promise.all([log({id:crypto.randomUUID(),localDate:today,sessionId:session?.id,taskId:task?.id,contentId:'a0-reading-mina',type:'reading',skill:'reading',durationSeconds:0,attempts:1,correct:answer.toLowerCase().includes('seoul'),hintsUsed:0,createdAt:now.toISOString()}),log({id:crypto.randomUUID(),localDate:today,sessionId:session?.id,taskId:task?.id,contentId:'a0-writing-self',type:'writing',skill:'writing',durationSeconds:0,attempts:1,correct:answer.trim().split(/\s+/).length>=3,hintsUsed:0,createdAt:now.toISOString()})]);if(session&&task)await complete(session.id,task.id);setDone(true)}
+  return <div className="mx-auto min-h-dvh max-w-xl bg-white px-5 pb-8 pt-[max(20px,env(safe-area-inset-top))]"><button onClick={()=>navigate('/daily')} className="flex min-h-11 items-center gap-2 text-sm font-bold text-muted"><ArrowLeft/> Daily로 돌아가기</button><p className="mt-8 text-xs font-bold text-primary">A0 · 읽기와 쓰기</p><h1 className="mt-2 text-3xl font-bold">짧은 소개를 읽어요</h1><article className="mt-7 rounded-3xl bg-canvas p-6 text-lg leading-8"><b>Hello, I’m Mina.</b><br/>I am from Korea.<br/>I live in Seoul.<br/>I like coffee.</article><label className="mt-7 block text-sm font-bold">Mina는 어디에 사나요? 영어 문장으로 답하세요.</label><textarea value={answer} onChange={e=>setAnswer(e.target.value)} className="mt-3 min-h-28 w-full rounded-2xl border border-line p-4" placeholder="She lives in …"/>{done?<div className="mt-5 flex gap-3 rounded-2xl bg-green-50 p-4 text-sm text-green-800"><Check/>읽기와 쓰기 활동을 저장했어요.</div>:<Button className="mt-5 w-full" disabled={answer.trim().split(/\s+/).length<3} onClick={()=>void finish()}><PenLine size={18}/> 답변 저장하고 완료</Button>}</div>
+}
