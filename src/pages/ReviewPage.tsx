@@ -1,0 +1,19 @@
+import { Brain, CalendarClock, Check, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Button, EmptyState, PageHeader } from '../components/ui'
+import { expressionById } from '../data/expressions'
+import { isDue, masteryStatus } from '../engine/review'
+import { useAppStore } from '../store/useAppStore'
+import type { ReviewGrade } from '../types'
+import { toLocalDateKey } from '../engine/daily'
+
+export function ReviewPage(){
+  const reviews=useAppStore(s=>s.reviews);const grade=useAppStore(s=>s.reviewExpression);const dailySessions=useAppStore(s=>s.dailySessions);const completeDailyTask=useAppStore(s=>s.completeDailyTask);const [showAnswer,setShowAnswer]=useState(false);const [index,setIndex]=useState(0);const [includeUpcoming,setIncludeUpcoming]=useState(false)
+  const due=reviews.filter(x=>isDue(x));const queue=includeUpcoming?reviews:due;const current=queue[index];const expression=current?expressionById.get(current.expressionId):null
+  const answer=async(value:ReviewGrade)=>{if(!current)return;await grade(current.expressionId,value);setShowAnswer(false);if(index>=queue.length-1){const daily=dailySessions.find(item=>item.id===toLocalDateKey());const task=daily?.tasks.find(item=>item.kind==='review');if(daily&&task)await completeDailyTask(daily.id,task.id);setIndex(0)}else setIndex(index+1)}
+  const masteryLabels={new:'새 표현',learning:'학습 중',review_needed:'복습 필요',provisional_mastery:'잠정 숙달',long_term_confirmed:'장기 기억 확인'}
+  return <><PageHeader eyebrow="REVIEW" title="간격 반복 복습" description="학습 완료와 장기 숙달을 구분하고, 로컬 날짜 기준으로 다음 복습일을 계산합니다."/>
+    {!expression?<EmptyState icon={<RotateCcw/>} title={reviews.length?'오늘 복습을 마쳤어요':'아직 복습할 표현이 없어요'} description={reviews.length?`예정된 표현 ${reviews.length}개가 알맞은 날에 다시 나타납니다.`:'학습을 완료하면 표현이 자동으로 복습 일정에 등록됩니다.'} action={reviews.length?<Button variant="secondary" onClick={()=>setIncludeUpcoming(true)}>예정 표현 미리 복습</Button>:<Link to="/learn/session"><Button>첫 표현 학습하기</Button></Link>}/>:<div className="mx-auto max-w-xl px-5"><div className="mb-4 flex items-center justify-between text-xs font-bold text-muted"><span>{index+1} / {queue.length}</span><span className="flex items-center gap-1"><CalendarClock size={14}/>{masteryLabels[masteryStatus(current)]} · {isDue(current)?'오늘 복습':'미리 복습'}</span></div><div className="flex min-h-[360px] flex-col justify-center rounded-[32px] border border-line bg-white p-7 text-center shadow-soft"><Brain className="mx-auto text-primary" size={30}/><p className="mt-6 text-xs font-bold uppercase tracking-wider text-primary">{expression.category}</p><h2 className="mt-3 text-3xl font-bold leading-tight">{expression.english}</h2>{showAnswer?<><div className="my-6 h-px bg-line"/><p className="text-xl text-muted">{expression.korean}</p><p className="mt-5 rounded-2xl bg-canvas p-4 text-sm leading-6">{expression.example}<br/><span className="text-muted">{expression.exampleKorean}</span></p></>:<Button className="mx-auto mt-8" onClick={()=>setShowAnswer(true)}>뜻과 예문 확인</Button>}</div>{showAnswer&&<div className="mt-5 grid grid-cols-3 gap-3"><button onClick={()=>answer('hard')} className="min-h-16 rounded-2xl bg-red-50 text-sm font-bold text-red-700">어려움<br/><span className="text-[10px] font-normal">1일 후</span></button><button onClick={()=>answer('good')} className="min-h-16 rounded-2xl bg-blue-50 text-sm font-bold text-blue-700">보통<br/><span className="text-[10px] font-normal">기본 간격</span></button><button onClick={()=>answer('easy')} className="min-h-16 rounded-2xl bg-green-50 text-sm font-bold text-green-700">쉬움<br/><span className="text-[10px] font-normal">간격 늘리기</span></button></div>}<div className="mt-6 flex items-center gap-2 rounded-2xl bg-slate-100 p-4 text-xs leading-5 text-muted"><Check size={16} className="shrink-0 text-green-600"/>학습·퀴즈·회화에서 저장한 표현은 같은 복습 일정으로 관리됩니다.</div></div>}
+  </>
+}
