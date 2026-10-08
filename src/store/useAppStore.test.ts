@@ -8,8 +8,8 @@ const profile: UserProfile={name:'학습자',goal:'일상 회화',level:'왕초�
 
 beforeEach(async()=>{
   await db.open()
-  await Promise.all([db.settings.clear(),db.learning.clear(),db.reviews.clear(),db.conversations.clear(),db.dailySessions.clear(),db.activities.clear(),db.weeklyChecks.clear()])
-  useAppStore.setState({profile:null,learningRecords:[],reviews:[],conversations:[],dailySessions:[],activities:[],weeklyChecks:[],hydrated:false,storageError:null})
+  await Promise.all([db.settings.clear(),db.learning.clear(),db.reviews.clear(),db.conversations.clear(),db.dailySessions.clear(),db.activities.clear(),db.weeklyChecks.clear(),db.speechAttempts.clear()])
+  useAppStore.setState({profile:null,learningRecords:[],reviews:[],conversations:[],dailySessions:[],activities:[],weeklyChecks:[],speechAttempts:[],hydrated:false,storageError:null})
 })
 
 describe('IndexedDB 학습 기록',()=>{
@@ -21,4 +21,5 @@ describe('IndexedDB 학습 기록',()=>{
   it('Daily 진행 상태를 저장하고 새로고침 때 실행 상태만 정지한다',async()=>{await useAppStore.getState().saveProfile({...profile,dailyGoal:60});const now=new Date(2026,0,4,9,0,0);const session=await useAppStore.getState().ensureTodaySession(now);await useAppStore.getState().startDailyTask(session.id,session.tasks[0].id,now);await useAppStore.getState().tickDailyTask(session.id,new Date(now.getTime()+5000));useAppStore.setState({dailySessions:[],hydrated:false});await useAppStore.getState().hydrate();const restored=useAppStore.getState().dailySessions[0];expect(restored.activeTaskId).toBeNull();expect(restored.tasks[0].accumulatedSeconds).toBe(5)})
   it('목표 시간을 바꿔도 오늘의 누적 진행을 보존한다',async()=>{await useAppStore.getState().saveProfile({...profile,dailyGoal:60});const now=new Date(2026,0,5,9,0,0);const session=await useAppStore.getState().ensureTodaySession(now);await useAppStore.getState().startDailyTask(session.id,session.tasks[0].id,now);await useAppStore.getState().tickDailyTask(session.id,new Date(now.getTime()+5000));await useAppStore.getState().changeDailyGoal(30,new Date(now.getTime()+6000));const updated=useAppStore.getState().dailySessions[0];expect(updated.goalMinutes).toBe(30);expect(updated.tasks.reduce((sum,task)=>sum+task.targetMinutes,0)).toBe(30);expect(updated.tasks[0].accumulatedSeconds).toBe(5)})
   it('v1 백업을 가져와도 기존 기록을 보존하고 새 배열을 초기화한다',async()=>{const backup:AppBackup={version:1,exportedAt:'2026-01-02T00:00:00.000Z',profile,learningRecords:[{expressionId:'greet-hello',learnedAt:'2026-01-01T00:00:00Z',completedSteps:7,quizCorrect:true}],reviews:[],conversations:[]};await useAppStore.getState().importData(backup);expect(useAppStore.getState().learningRecords).toHaveLength(1);expect(useAppStore.getState().dailySessions).toEqual([]);expect(useAppStore.getState().activities).toEqual([])})
+  it('음성 원문과 사용자 수정문을 서로 다른 필드로 저장한다',async()=>{const attempt={id:'speech-1',localDate:'2026-01-02',contentId:'intro',step:4,source:'speech' as const,rawTranscript:"I'm San",correctedTranscript:"I'm Sanghyun",aliasEntryId:'sanghyun',userEdited:true,recognitionStatus:'final' as const,createdAt:'2026-01-02T00:00:00.000Z'};await useAppStore.getState().saveSpeechAttempt(attempt);expect((await db.speechAttempts.get('speech-1'))?.rawTranscript).toBe("I'm San");expect(useAppStore.getState().exportData().speechAttempts?.[0].correctedTranscript).toBe("I'm Sanghyun")})
 })
