@@ -12,6 +12,7 @@ export function validateProperNoun(entry: ProperNounEntry): string | null {
   if(canonical.length<2||canonical.length>40)return '표준 표기는 2–40자로 입력해 주세요.'
   if(entry.aliases.length>6)return '별칭은 고유명사마다 최대 6개까지 저장할 수 있습니다.'
   const canonicalKey=comparable(canonical)
+  if(canonicalKey.length<2)return '음성 인식용 표준 표기는 영문 또는 숫자를 포함해 주세요.'
   for(const raw of entry.aliases){
     const alias=clean(raw);const key=comparable(alias)
     if(key.length<2||key.length>40)return '별칭은 2–40자로 입력해 주세요.'

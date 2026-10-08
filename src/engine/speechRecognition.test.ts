@@ -13,4 +13,5 @@ describe('음성 인식 결과 처리',()=>{
   it('띄어쓰기 변형을 고유명사 후보로 처리한다',()=>{expect(suggestProperNounAliases('My name is Wise N',names).text).toBe('My name is Wisen')})
   it('의미가 분명한 일반 단어는 별칭으로 허용하지 않는다',()=>{expect(validateProperNoun({id:'w',kind:'person',canonical:'Wisen',aliases:['white']})).toContain('일반 단어')})
   it('무관한 문자열을 무제한 별칭으로 허용하지 않는다',()=>{expect(validateProperNoun({id:'x',kind:'brand',canonical:'NARO',aliases:['coffee shop']})).toContain('보기 어렵습니다')})
+  it('음성 인식과 비교할 수 없는 표준 표기는 사전에 저장하지 않는다',()=>{expect(validateProperNoun({id:'k',kind:'person',canonical:'상현',aliases:['anything']})).toContain('영문')})
 })
