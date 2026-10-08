@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { ActivityRecord, ConversationSession, DailySession, LearningRecord, ReviewRecord, UserProfile, WeeklyCheckRecord } from './types'
+import type { ActivityRecord, ConversationSession, DailySession, LearningRecord, ReviewRecord, SpeechAttempt, UserProfile, WeeklyCheckRecord } from './types'
 
 type SettingRow = { key: string; value: UserProfile }
 
@@ -11,6 +11,7 @@ class NaroDatabase extends Dexie {
   dailySessions!: EntityTable<DailySession, 'id'>
   activities!: EntityTable<ActivityRecord, 'id'>
   weeklyChecks!: EntityTable<WeeklyCheckRecord, 'id'>
+  speechAttempts!: EntityTable<SpeechAttempt, 'id'>
 
   constructor() {
     super('naro-learn-english')
@@ -28,6 +29,16 @@ class NaroDatabase extends Dexie {
       dailySessions: '&id, localDate, updatedAt',
       activities: '&id, localDate, skill, type, contentId',
       weeklyChecks: '&id, week, completedAt'
+    })
+    this.version(3).stores({
+      settings: '&key',
+      learning: '&expressionId, learnedAt, quizCorrect',
+      reviews: '&expressionId, nextReviewAt',
+      conversations: '&id, scenarioId, startedAt, completedAt',
+      dailySessions: '&id, localDate, updatedAt',
+      activities: '&id, localDate, skill, type, contentId',
+      weeklyChecks: '&id, week, completedAt',
+      speechAttempts: '&id, localDate, contentId, recognitionStatus, createdAt'
     })
   }
 }

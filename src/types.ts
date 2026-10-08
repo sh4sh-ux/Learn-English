@@ -10,6 +10,27 @@ export type TaskStatus = 'not_started' | 'active' | 'completed'
 export type ActivityType = 'review' | 'vocabulary' | 'grammar' | 'listening' | 'speaking_repeat' | 'speaking_recall' | 'speaking_respond' | 'reading' | 'writing' | 'conversation' | 'weekly_check'
 export type MasteryStatus = 'new' | 'learning' | 'review_needed' | 'provisional_mastery' | 'long_term_confirmed'
 
+export interface ProperNounEntry {
+  id: string
+  kind: 'person' | 'brand'
+  canonical: string
+  aliases: string[]
+}
+
+export interface SpeechAttempt {
+  id: string
+  localDate: string
+  contentId?: string
+  step?: number
+  source: 'speech' | 'text'
+  rawTranscript: string
+  correctedTranscript: string
+  aliasEntryId?: string
+  userEdited: boolean
+  recognitionStatus: 'final' | 'interim-only' | 'cancelled' | 'timeout' | 'error' | 'text'
+  createdAt: string
+}
+
 export interface UserProfile {
   name: string
   goal: Goal
@@ -19,6 +40,7 @@ export interface UserProfile {
   voiceRate: number
   saveConversationText: boolean
   activeMode: LearningMode
+  properNouns?: ProperNounEntry[]
   createdAt: string
 }
 
@@ -226,7 +248,7 @@ export interface ConversationFeedback {
 }
 
 export interface AppBackup {
-  version: 1 | 2
+  version: 1 | 2 | 3
   exportedAt: string
   profile: UserProfile | null
   learningRecords: LearningRecord[]
@@ -235,6 +257,7 @@ export interface AppBackup {
   dailySessions?: DailySession[]
   activities?: ActivityRecord[]
   weeklyChecks?: WeeklyCheckRecord[]
+  speechAttempts?: SpeechAttempt[]
 }
 
 export interface ConversationEngine {
